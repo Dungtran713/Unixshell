@@ -1,11 +1,11 @@
-
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+
 char** parse(char* s) {
   static char* words[500];
   memset(words, 0, sizeof(words));
@@ -27,7 +27,7 @@ int main(int argc, const char * argv[]) {
   char last_command[BUFSIZ];
   
   memset(input, 0, BUFSIZ * sizeof(char));
-  memset(input, 0, BUFSIZ * sizeof(char));
+  memset(last_command, 0, BUFSIZ * sizeof(char));
   bool finished = false;
   
   while (!finished) {
@@ -47,6 +47,22 @@ int main(int argc, const char * argv[]) {
         fprintf(stderr, "no last command to execute\n");
       }
       printf("last command was: %s\n", last_command);
+     pid_t pid = fork();
+
+        if (pid == 0) {
+                //printf("I am the child.\n");
+                char** parsecresult = parse(last_command);
+                execvp(parsecresult[0],parsecresult);
+                exit(0);
+        }
+        else if (pid > 0) {
+                //printf("I am the parent, the child is.\n");
+                wait(NULL);
+        }
+        else {
+                perror("Failed fork");
+                return 1;
+        }
     } else if (strncmp(input, "exit", 4) == 0) {   // only compare first 4 letters
       finished = true;
     } else {
@@ -55,21 +71,19 @@ int main(int argc, const char * argv[]) {
       pid_t pid = fork();
 
         if (pid == 0) {
-                printf("I am the child.\n");
-                execvp(input, (char *[]){input, NULL});
+                //printf("I am the child.\n");
+                char** parsecresult = parse(input);
+                execvp(parsecresult[0],parsecresult);
                 exit(0);
         }
         else if (pid > 0) {
-                printf("I am the parent, the child is.\n");
+                //printf("I am the parent, the child is.\n");
                 wait(NULL);
         }
         else {
                 perror("Failed fork");
+                return 1;
         }
-
-      parse(input);
-			printf("after parse, what is input: %s\n", input);
-      printf("\n");
     }
   }
   
